@@ -1,0 +1,45 @@
+name: S3 Unit Tests
+
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
+
+permissions: read-all
+
+jobs:
+  s3-unit-tests:
+    name: S3 unit tests / Python ${{ matrix.ver }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04]
+        ver: ['3.9', '3.10', '3.11', '3.12', '3.13']
+
+    steps:
+    - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
+
+    - name: Set up Python ${{ matrix.ver }}
+      uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
+      with:
+        python-version: ${{ matrix.ver }}
+      env:
+        PIP_TRUSTED_HOST: "pypi.python.org pypi.org files.pythonhosted.org"
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip setuptools
+        python -m pip install -e .
+        python -m pip install pytest pytest-cov
+
+    - name: Run S3 unit tests
+      run: |
+        python -m pytest test/unit/test_s3.py -v
+
+    - name: Run S3 unit tests with coverage
+      run: |
+        python -m pytest test/unit/test_s3.py --cov=metaflow.plugins.datatools.s3.s3 --cov-report=term-missing
